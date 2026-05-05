@@ -220,7 +220,7 @@ def move_to_addressable_area_for_drop_tip(
 ):
   params = {
     "pipetteId": pipette_id,
-    "addressableAreaName": "fixedTrash",
+    "addressableAreaName": "movableTrashA1",
     "wellName": "A1",
     "wellLocation": {
       "origin": "default",
@@ -384,6 +384,26 @@ def retract_pipette_z_axis(
    return ot_api.runs.enqueue_command(
      'retractAxis', params=params, intent='setup', run_id=run_id,
    )
+
+@command
+def home_pipette_plunger(
+  pipette_mount: str,  # "left" or "right"
+  run_id: Optional[str] = None,
+) -> None:
+  """Home the plunger (and Z) of one pipette via a Protocol Engine run command.
+
+  Preferred over the direct /robot/home endpoint when a run is active: this
+  enqueues a ``home`` command inside the PE session, so the engine's internal
+  axis-state bookkeeping stays consistent after clearing a stall fault latch.
+
+  Axes homed:
+    ``{mount}Plunger`` — clears the ejector / plunger stall fault latch.
+    ``{mount}Z``       — re-establishes the Z home position after retraction.
+  """
+  params = {'axes': [f'{pipette_mount}Plunger', f'{pipette_mount}Z']}
+  return ot_api.runs.enqueue_command(
+    'home', params=params, intent='setup', run_id=run_id,
+  )
 
 @command 
 def home_extension_jaw(
